@@ -17,23 +17,6 @@ import io.trino.testing.BaseConnectorSmokeTest;
 import io.trino.testing.TestingConnectorBehavior;
 import org.junit.jupiter.api.Test;
 
-import static io.trino.testing.TestingConnectorBehavior.SUPPORTS_COMMENT_ON_MATERIALIZED_VIEW_COLUMN;
-import static io.trino.testing.TestingConnectorBehavior.SUPPORTS_COMMENT_ON_VIEW_COLUMN;
-import static io.trino.testing.TestingConnectorBehavior.SUPPORTS_CREATE_MATERIALIZED_VIEW;
-import static io.trino.testing.TestingConnectorBehavior.SUPPORTS_CREATE_SCHEMA;
-import static io.trino.testing.TestingConnectorBehavior.SUPPORTS_CREATE_TABLE;
-import static io.trino.testing.TestingConnectorBehavior.SUPPORTS_CREATE_TABLE_WITH_DATA;
-import static io.trino.testing.TestingConnectorBehavior.SUPPORTS_CREATE_VIEW;
-import static io.trino.testing.TestingConnectorBehavior.SUPPORTS_DELETE;
-import static io.trino.testing.TestingConnectorBehavior.SUPPORTS_DROP_SCHEMA_CASCADE;
-import static io.trino.testing.TestingConnectorBehavior.SUPPORTS_INSERT;
-import static io.trino.testing.TestingConnectorBehavior.SUPPORTS_MERGE;
-import static io.trino.testing.TestingConnectorBehavior.SUPPORTS_RENAME_SCHEMA;
-import static io.trino.testing.TestingConnectorBehavior.SUPPORTS_RENAME_TABLE;
-import static io.trino.testing.TestingConnectorBehavior.SUPPORTS_RENAME_TABLE_ACROSS_SCHEMAS;
-import static io.trino.testing.TestingConnectorBehavior.SUPPORTS_ROW_LEVEL_DELETE;
-import static io.trino.testing.TestingConnectorBehavior.SUPPORTS_TRUNCATE;
-import static io.trino.testing.TestingConnectorBehavior.SUPPORTS_UPDATE;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assumptions.abort;
 
