@@ -574,6 +574,6 @@ public class TestSubstraitExpressionBuilder
         TupleDomain<LanceColumnHandle> domain = TupleDomain.withColumnDomains(
                 Map.of(columns.getFirst(), Domain.singleValue(INTEGER, 42L)));
         ByteBuffer buffer = SubstraitExpressionBuilder.tupleDomainToSubstrait(domain, columns, ordinals).orElseThrow();
-        return ExtendedExpression.parseFrom(buffer.array()).getBaseSchema();
+        return ExtendedExpression.parseFrom(buffer).getBaseSchema();
     }
 }

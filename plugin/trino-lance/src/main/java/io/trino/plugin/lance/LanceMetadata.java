@@ -129,6 +129,7 @@ import static io.trino.spi.type.DateTimeEncoding.unpackMillisUtc;
 import static io.trino.spi.type.IntegerType.INTEGER;
 import static io.trino.spi.type.SmallintType.SMALLINT;
 import static io.trino.spi.type.TinyintType.TINYINT;
+import static java.util.Locale.ENGLISH;
 import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.TimeUnit.MICROSECONDS;
 
@@ -1505,11 +1506,11 @@ public class LanceMetadata
         while (current != null) {
             String message = current.getMessage();
             if (message != null && (
-                    message.toLowerCase().contains("commit conflict") ||
-                    message.toLowerCase().contains("concurrent") ||
-                    message.toLowerCase().contains("version") ||
-                    message.toLowerCase().contains("conflict") ||
-                    message.toLowerCase().contains("not found"))) {
+                    message.toLowerCase(ENGLISH).contains("commit conflict") ||
+                    message.toLowerCase(ENGLISH).contains("concurrent") ||
+                    message.toLowerCase(ENGLISH).contains("version") ||
+                    message.toLowerCase(ENGLISH).contains("conflict") ||
+                    message.toLowerCase(ENGLISH).contains("not found"))) {
                 return true;
             }
             // NullPointerException in Fragment/Dataset operations is also a sign of concurrent modification

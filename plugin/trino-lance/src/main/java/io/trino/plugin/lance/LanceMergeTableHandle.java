@@ -48,6 +48,7 @@ public record LanceMergeTableHandle(
     }
 
     @JsonProperty
+    @Override
     public LanceTableHandle tableHandle()
     {
         return tableHandle;

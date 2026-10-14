@@ -44,7 +44,6 @@ import org.apache.arrow.vector.VarBinaryVector;
 import org.apache.arrow.vector.VarCharVector;
 import org.apache.arrow.vector.complex.FixedSizeListVector;
 import org.apache.arrow.vector.complex.ListVector;
-import org.apache.arrow.vector.complex.StructVector;
 import org.apache.arrow.vector.types.DateUnit;
 import org.apache.arrow.vector.types.FloatingPointPrecision;
 import org.apache.arrow.vector.types.TimeUnit;
@@ -309,8 +308,8 @@ public final class LancePageToArrowConverter
                 writeArrayBlock(block, (ListVector) vector, arrayType, rowCount, offset);
             }
         }
-        else if (type instanceof RowType rowType) {
-            writeRowBlock(block, (StructVector) vector, rowType, rowCount, offset);
+        else if (type instanceof RowType) {
+            throw new TrinoException(NOT_SUPPORTED, "ROW type write is not yet implemented");
         }
         else {
             throw new TrinoException(NOT_SUPPORTED, format("Unsupported type for writing to Arrow: %s", type));
@@ -660,12 +659,5 @@ public final class LancePageToArrowConverter
             }
         }
         vector.setValueCount(rowOffset + rowCount);
-    }
-
-    private static void writeRowBlock(Block block, StructVector vector, RowType rowType, int rowCount, int offset)
-    {
-        // For now, ROW type write is not fully implemented
-        // This requires more complex handling of SqlRow objects
-        throw new TrinoException(NOT_SUPPORTED, "ROW type write is not yet implemented");
     }
 }

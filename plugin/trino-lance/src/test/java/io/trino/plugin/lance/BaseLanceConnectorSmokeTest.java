@@ -109,6 +109,7 @@ public abstract class BaseLanceConnectorSmokeTest
     }
 
     @Test
+    @Override
     public void testCreateTableAsSelect()
     {
         String tableName = "test_ctas_" + System.currentTimeMillis();
