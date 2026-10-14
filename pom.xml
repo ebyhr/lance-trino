@@ -451,7 +451,7 @@
                                     -Xep:FallThrough:ERROR \
                                     -Xep:Finalize:ERROR \
                                     -Xep:GetClassOnEnum:ERROR \
-                                    -Xep:GuardedBy:${trino.error-prone.guarded-by} \
+                                    -Xep:GuardedBy:ERROR \
                                     -Xep:HidingField:ERROR \
                                     -Xep:JavaTimeDefaultTimeZone:OFF \
                                     -Xep:JdkObsolete:OFF \

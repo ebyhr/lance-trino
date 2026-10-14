@@ -28,6 +28,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.ImmutableList.toImmutableList;
 import static io.trino.spi.StandardErrorCode.TRANSACTION_CONFLICT;
+import static java.util.Locale.ENGLISH;
 
 public abstract class LanceBasePageSource
         implements ConnectorPageSource
@@ -79,9 +80,9 @@ public abstract class LanceBasePageSource
         while (current != null) {
             String message = current.getMessage();
             if (message != null && (
-                    message.toLowerCase().contains("not found") ||
-                    message.toLowerCase().contains("concurrent") ||
-                    message.toLowerCase().contains("conflict"))) {
+                    message.toLowerCase(ENGLISH).contains("not found") ||
+                    message.toLowerCase(ENGLISH).contains("concurrent") ||
+                    message.toLowerCase(ENGLISH).contains("conflict"))) {
                 return true;
             }
             if (current instanceof NullPointerException) {

@@ -97,6 +97,7 @@ public class LanceFragmentPageSource
         private final boolean includeRowAddress;
         private final int readBatchSize;
         private final LanceRuntime runtime;
+        @SuppressWarnings("UnusedVariable")
         private Dataset lanceDataset;
         private LanceScanner lanceScanner;
 

@@ -26,6 +26,7 @@ import java.util.Set;
 
 import static io.trino.spi.StandardErrorCode.INVALID_TABLE_PROPERTY;
 import static io.trino.spi.session.PropertyMetadata.stringProperty;
+import static java.util.Locale.ENGLISH;
 
 public final class LanceTableProperties
 {
@@ -139,7 +140,7 @@ public final class LanceTableProperties
         if (value == null || value.toString().isEmpty()) {
             return null;
         }
-        String version = value.toString().trim().toLowerCase();
+        String version = value.toString().trim().toLowerCase(ENGLISH);
         if (!VALID_STORAGE_VERSIONS.contains(version)) {
             throw new TrinoException(INVALID_TABLE_PROPERTY,
                     "Invalid file_format_version: '" + value + "'. " +

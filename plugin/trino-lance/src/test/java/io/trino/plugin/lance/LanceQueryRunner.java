@@ -29,7 +29,6 @@ import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.BucketAlreadyOwnedByYouException;
 import software.amazon.awssdk.services.s3.model.CreateBucketRequest;
 
-import java.io.Closeable;
 import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -152,8 +151,7 @@ public final class LanceQueryRunner
 
         // Create builder with REST connector properties
         Builder builder = new Builder()
-                .setNamespaceTestConfig(config)
-                .setExternalResource(restAdapter);
+                .setNamespaceTestConfig(config);
 
         // Set REST connector properties
         Map<String, String> restProps = config.buildRestConnectorProperties(restUri);
@@ -199,7 +197,6 @@ public final class LanceQueryRunner
         private Set<TpchTable<?>> initialTables = ImmutableSet.of();
         private boolean useTempDirectory;
         private Optional<LanceNamespaceTestConfig> namespaceTestConfig = Optional.empty();
-        private Optional<Closeable> externalResource = Optional.empty();
 
         private Builder()
         {
@@ -230,12 +227,6 @@ public final class LanceQueryRunner
         public Builder setNamespaceTestConfig(LanceNamespaceTestConfig config)
         {
             this.namespaceTestConfig = Optional.of(config);
-            return this;
-        }
-
-        public Builder setExternalResource(Closeable resource)
-        {
-            this.externalResource = Optional.of(resource);
             return this;
         }
 
