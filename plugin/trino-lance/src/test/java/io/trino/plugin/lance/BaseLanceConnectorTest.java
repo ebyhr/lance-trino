@@ -19,37 +19,6 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Optional;
 
-import static io.trino.testing.TestingConnectorBehavior.SUPPORTS_ADD_COLUMN;
-import static io.trino.testing.TestingConnectorBehavior.SUPPORTS_ADD_COLUMN_NOT_NULL_CONSTRAINT;
-import static io.trino.testing.TestingConnectorBehavior.SUPPORTS_ADD_COLUMN_WITH_COMMENT;
-import static io.trino.testing.TestingConnectorBehavior.SUPPORTS_COMMENT_ON_COLUMN;
-import static io.trino.testing.TestingConnectorBehavior.SUPPORTS_COMMENT_ON_MATERIALIZED_VIEW_COLUMN;
-import static io.trino.testing.TestingConnectorBehavior.SUPPORTS_COMMENT_ON_TABLE;
-import static io.trino.testing.TestingConnectorBehavior.SUPPORTS_COMMENT_ON_VIEW_COLUMN;
-import static io.trino.testing.TestingConnectorBehavior.SUPPORTS_CREATE_MATERIALIZED_VIEW;
-import static io.trino.testing.TestingConnectorBehavior.SUPPORTS_CREATE_OR_REPLACE_TABLE;
-import static io.trino.testing.TestingConnectorBehavior.SUPPORTS_CREATE_SCHEMA;
-import static io.trino.testing.TestingConnectorBehavior.SUPPORTS_CREATE_TABLE;
-import static io.trino.testing.TestingConnectorBehavior.SUPPORTS_CREATE_TABLE_WITH_DATA;
-import static io.trino.testing.TestingConnectorBehavior.SUPPORTS_CREATE_VIEW;
-import static io.trino.testing.TestingConnectorBehavior.SUPPORTS_DELETE;
-import static io.trino.testing.TestingConnectorBehavior.SUPPORTS_DROP_COLUMN;
-import static io.trino.testing.TestingConnectorBehavior.SUPPORTS_DROP_SCHEMA_CASCADE;
-import static io.trino.testing.TestingConnectorBehavior.SUPPORTS_INSERT;
-import static io.trino.testing.TestingConnectorBehavior.SUPPORTS_MAP_TYPE;
-import static io.trino.testing.TestingConnectorBehavior.SUPPORTS_MERGE;
-import static io.trino.testing.TestingConnectorBehavior.SUPPORTS_NEGATIVE_DATE;
-import static io.trino.testing.TestingConnectorBehavior.SUPPORTS_NOT_NULL_CONSTRAINT;
-import static io.trino.testing.TestingConnectorBehavior.SUPPORTS_RENAME_COLUMN;
-import static io.trino.testing.TestingConnectorBehavior.SUPPORTS_RENAME_SCHEMA;
-import static io.trino.testing.TestingConnectorBehavior.SUPPORTS_RENAME_TABLE;
-import static io.trino.testing.TestingConnectorBehavior.SUPPORTS_RENAME_TABLE_ACROSS_SCHEMAS;
-import static io.trino.testing.TestingConnectorBehavior.SUPPORTS_ROW_LEVEL_DELETE;
-import static io.trino.testing.TestingConnectorBehavior.SUPPORTS_ROW_TYPE;
-import static io.trino.testing.TestingConnectorBehavior.SUPPORTS_SET_COLUMN_TYPE;
-import static io.trino.testing.TestingConnectorBehavior.SUPPORTS_TOPN_PUSHDOWN;
-import static io.trino.testing.TestingConnectorBehavior.SUPPORTS_TRUNCATE;
-import static io.trino.testing.TestingConnectorBehavior.SUPPORTS_UPDATE;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assumptions.abort;
 
@@ -550,5 +519,19 @@ public abstract class BaseLanceConnectorTest
         assertQueryFails(
                 "SELECT * FROM nation FOR VERSION AS OF 0",
                 "Lance version number must be positive: 0");
+    }
+
+    @Test
+    public void testShowStats()
+    {
+        assertThat(query("SHOW STATS FOR region"))
+                .skippingTypesCheck()
+                .matches("""
+                        VALUES
+                        (VARCHAR 'regionkey', null, null, null, null, null, null),
+                        (VARCHAR 'name', null, null, null, null, null, null),
+                        (VARCHAR 'comment', null, null, null, null, null, null),
+                        (NULL, NULL, NULL, NULL, 5e0, NULL, NULL)
+                        """);
     }
 }
