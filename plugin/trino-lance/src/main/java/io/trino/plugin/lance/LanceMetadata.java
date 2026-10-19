@@ -656,7 +656,7 @@ public class LanceMetadata
         LanceTableHandle newHandle = lanceTableHandle.withCountStar();
 
         // Create synthetic column handle for the row-count result
-        LanceColumnHandle countColumnHandle = new LanceColumnHandle("_count", aggregate.getOutputType(), false, -1);
+        LanceColumnHandle countColumnHandle = LanceColumnHandle.required("_count").setTrinoType(aggregate.getOutputType()).build();
         Variable variable = new Variable("_count", aggregate.getOutputType());
 
         return Optional.of(new AggregationApplicationResult<>(
@@ -907,8 +907,11 @@ public class LanceMetadata
         }
 
         List<LanceColumnHandle> columns = tableMetadata.getColumns().stream()
-                .map(col -> new LanceColumnHandle(col.getName(), col.getType(), col.isNullable(),
-                        -1, blobColumns.contains(col.getName())))
+                .map(col -> LanceColumnHandle.builder(col.getName())
+                        .setTrinoType(col.getType())
+                        .setNullable(col.isNullable())
+                        .setBlob(blobColumns.contains(col.getName()))
+                        .build())
                 .collect(toImmutableList());
 
         Schema arrowSchema = LancePageToArrowConverter.toArrowSchema(tableMetadata.getColumns(), blobColumns, vectorColumns);
@@ -1091,7 +1094,7 @@ public class LanceMetadata
     @Override
     public ColumnHandle getMergeRowIdColumnHandle(ConnectorSession session, ConnectorTableHandle tableHandle)
     {
-        return new LanceColumnHandle(LANCE_ROW_ADDRESS, BIGINT, false, -1);
+        return LanceColumnHandle.required(LANCE_ROW_ADDRESS).setTrinoType(BIGINT).build();
     }
 
     @Override

@@ -33,7 +33,6 @@ import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.memory.RootAllocator;
 import org.apache.arrow.vector.types.pojo.ArrowType;
 import org.apache.arrow.vector.types.pojo.Field;
-import org.apache.arrow.vector.types.pojo.FieldType;
 import org.apache.arrow.vector.types.pojo.Schema;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -123,10 +122,10 @@ public class TestLanceMetadata
     {
         // known table - field IDs are assigned by Lance based on schema order (x=0, y=1, b=2, c=3)
         assertThat(metadata.getColumnHandles(SESSION, TEST_TABLE_1_HANDLE)).isEqualTo(ImmutableMap.of(
-                "b", new LanceColumnHandle("b", LanceColumnHandle.toTrinoType(INT64_TYPE), true, 2),
-                "c", new LanceColumnHandle("c", LanceColumnHandle.toTrinoType(INT64_TYPE), true, 3),
-                "x", new LanceColumnHandle("x", LanceColumnHandle.toTrinoType(INT64_TYPE), true, 0),
-                "y", new LanceColumnHandle("y", LanceColumnHandle.toTrinoType(INT64_TYPE), true, 1)));
+                "b", LanceColumnHandle.optional("b").setTrinoType(LanceColumnHandle.toTrinoType(INT64_TYPE)).setFieldId(2).build(),
+                "c", LanceColumnHandle.optional("c").setTrinoType(LanceColumnHandle.toTrinoType(INT64_TYPE)).setFieldId(3).build(),
+                "x", LanceColumnHandle.optional("x").setTrinoType(LanceColumnHandle.toTrinoType(INT64_TYPE)).setFieldId(0).build(),
+                "y", LanceColumnHandle.optional("y").setTrinoType(LanceColumnHandle.toTrinoType(INT64_TYPE)).setFieldId(1).build()));
 
         // unknown table
         assertThatThrownBy(() -> metadata.getColumnHandles(SESSION, new LanceTableHandle("unknown", "unknown", "unknown", List.of("unknown"), Map.of())))
@@ -145,10 +144,10 @@ public class TestLanceMetadata
         assertThat(tableMetadata.getTable()).isEqualTo(new SchemaTableName("default", "test_table1"));
         // Column order in test data: x, y, b, c
         assertThat(tableMetadata.getColumns()).isEqualTo(ImmutableList.of(
-                new LanceColumnHandle("x", LanceColumnHandle.toTrinoType(INT64_TYPE), FieldType.nullable(INT64_TYPE)).getColumnMetadata(),
-                new LanceColumnHandle("y", LanceColumnHandle.toTrinoType(INT64_TYPE), FieldType.nullable(INT64_TYPE)).getColumnMetadata(),
-                new LanceColumnHandle("b", LanceColumnHandle.toTrinoType(INT64_TYPE), FieldType.nullable(INT64_TYPE)).getColumnMetadata(),
-                new LanceColumnHandle("c", LanceColumnHandle.toTrinoType(INT64_TYPE), FieldType.nullable(INT64_TYPE)).getColumnMetadata()));
+                LanceColumnHandle.optional("x").setTrinoType(LanceColumnHandle.toTrinoType(INT64_TYPE)).build().getColumnMetadata(),
+                LanceColumnHandle.optional("y").setTrinoType(LanceColumnHandle.toTrinoType(INT64_TYPE)).build().getColumnMetadata(),
+                LanceColumnHandle.optional("b").setTrinoType(LanceColumnHandle.toTrinoType(INT64_TYPE)).build().getColumnMetadata(),
+                LanceColumnHandle.optional("c").setTrinoType(LanceColumnHandle.toTrinoType(INT64_TYPE)).build().getColumnMetadata()));
 
         // unknown tables should produce null
         assertThat(metadata.getTableMetadata(SESSION, new LanceTableHandle("unknown", "unknown", "unknown", List.of("unknown"), Map.of()))).isNull();
@@ -195,7 +194,7 @@ public class TestLanceMetadata
     {
         assertThat(applyAggregation(
                 TEST_TABLE_1_HANDLE,
-                List.of(List.of(new LanceColumnHandle("x", BIGINT, true, 0))),
+                List.of(List.of(LanceColumnHandle.optional("x").setTrinoType(BIGINT).setFieldId(0).build())),
                 countStar()))
                 .isEmpty();
     }

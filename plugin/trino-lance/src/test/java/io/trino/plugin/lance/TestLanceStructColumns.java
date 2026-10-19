@@ -134,8 +134,8 @@ public class TestLanceStructColumns
     public void testNestedFieldFilterPushdown()
     {
         RowType metadataType = metadataType();
-        LanceColumnHandle id = new LanceColumnHandle("id", INTEGER, true, 0);
-        LanceColumnHandle metadata = new LanceColumnHandle("metadata", metadataType, true, 1);
+        LanceColumnHandle id = LanceColumnHandle.optional("id").setTrinoType(INTEGER).setFieldId(0).build();
+        LanceColumnHandle metadata = LanceColumnHandle.optional("metadata").setTrinoType(metadataType).setFieldId(1).build();
         LanceColumnHandle metadataName = LanceColumnHandle.nestedColumn(
                 "metadata.name", VARCHAR, true, 1, "metadata", metadataType, List.of(0), List.of("name"));
 
@@ -174,7 +174,7 @@ public class TestLanceStructColumns
         RowType metadataType = RowType.from(List.of(
                 new RowType.Field(Optional.of("child.name"), VARCHAR),
                 new RowType.Field(Optional.of("value"), BIGINT)));
-        LanceColumnHandle metadata = new LanceColumnHandle("meta.data", metadataType, true, 1);
+        LanceColumnHandle metadata = LanceColumnHandle.optional("meta.data").setTrinoType(metadataType).setFieldId(1).build();
         LanceColumnHandle childName = LanceColumnHandle.nestedColumn(
                 "meta\\.data.child\\.name", VARCHAR, true, 1, "meta.data", metadataType, List.of(0), List.of("child.name"));
 
@@ -198,8 +198,8 @@ public class TestLanceStructColumns
     public void testNestedProjectionAndFilterSameLeafName()
     {
         RowType rowType = RowType.from(List.of(new RowType.Field(Optional.of("name"), VARCHAR)));
-        LanceColumnHandle left = new LanceColumnHandle("left_meta", rowType, true, 1);
-        LanceColumnHandle right = new LanceColumnHandle("right_meta", rowType, true, 2);
+        LanceColumnHandle left = LanceColumnHandle.optional("left_meta").setTrinoType(rowType).setFieldId(1).build();
+        LanceColumnHandle right = LanceColumnHandle.optional("right_meta").setTrinoType(rowType).setFieldId(2).build();
 
         ConnectorExpression leftName = new FieldDereference(VARCHAR, new Variable("left_meta", rowType), 0);
         ConnectorExpression rightName = new FieldDereference(VARCHAR, new Variable("right_meta", rowType), 0);
@@ -228,8 +228,8 @@ public class TestLanceStructColumns
     public void testMixedTopLevelAndNestedFieldFilter()
     {
         RowType metadataType = metadataType();
-        LanceColumnHandle id = new LanceColumnHandle("id", INTEGER, true, 0);
-        LanceColumnHandle metadata = new LanceColumnHandle("metadata", metadataType, true, 1);
+        LanceColumnHandle id = LanceColumnHandle.optional("id").setTrinoType(INTEGER).setFieldId(0).build();
+        LanceColumnHandle metadata = LanceColumnHandle.optional("metadata").setTrinoType(metadataType).setFieldId(1).build();
         LanceColumnHandle metadataValue = LanceColumnHandle.nestedColumn(
                 "metadata.value", BIGINT, true, 1, "metadata", metadataType, List.of(1), List.of("value"));
 

@@ -65,7 +65,7 @@ public class LanceFragmentPageSource
         for (LanceColumnHandle col : columns) {
             if (LANCE_ROW_ADDRESS.equals(col.name())) {
                 // Map $row_address to _rowaddr (Lance's internal row address column name)
-                result.add(new LanceColumnHandle(LANCE_INTERNAL_ROW_ADDRESS, BIGINT, false, -1));
+                result.add(LanceColumnHandle.required(LANCE_INTERNAL_ROW_ADDRESS).setTrinoType(BIGINT).build());
             }
             else {
                 result.add(col);
