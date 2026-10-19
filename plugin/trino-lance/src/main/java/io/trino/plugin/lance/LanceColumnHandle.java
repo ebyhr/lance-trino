@@ -14,6 +14,7 @@
 package io.trino.plugin.lance;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.google.common.collect.ImmutableList;
 import io.trino.spi.connector.ColumnHandle;
 import io.trino.spi.connector.ColumnMetadata;
 import io.trino.spi.type.ArrayType;
@@ -21,7 +22,6 @@ import io.trino.spi.type.RowType;
 import io.trino.spi.type.Type;
 import org.apache.arrow.vector.types.FloatingPointPrecision;
 import org.apache.arrow.vector.types.pojo.ArrowType;
-import org.apache.arrow.vector.types.pojo.FieldType;
 import org.lance.schema.LanceField;
 
 import java.util.ArrayList;
@@ -57,50 +57,6 @@ public record LanceColumnHandle(
         List<String> dereferenceNames)
         implements ColumnHandle
 {
-    public LanceColumnHandle(String name, Type trinoType, FieldType fieldType)
-    {
-        this(name, trinoType, fieldType.isNullable(), -1, false, BlobUtils.BlobVirtualColumnType.NONE, null);
-    }
-
-    public LanceColumnHandle(String name, Type trinoType, boolean isNullable)
-    {
-        this(name, trinoType, isNullable, -1, false, BlobUtils.BlobVirtualColumnType.NONE, null);
-    }
-
-    public LanceColumnHandle(String name, Type trinoType, boolean isNullable, int fieldId)
-    {
-        this(name, trinoType, isNullable, fieldId, false, BlobUtils.BlobVirtualColumnType.NONE, null);
-    }
-
-    public LanceColumnHandle(String name, Type trinoType, boolean isNullable, int fieldId, boolean isBlob)
-    {
-        this(name, trinoType, isNullable, fieldId, isBlob, BlobUtils.BlobVirtualColumnType.NONE, null);
-    }
-
-    public LanceColumnHandle(
-            String name,
-            Type trinoType,
-            boolean isNullable,
-            int fieldId,
-            boolean isBlob,
-            BlobUtils.BlobVirtualColumnType blobVirtualColumnType,
-            String baseBlobColumnName)
-    {
-        this(
-                name,
-                trinoType,
-                isNullable,
-                fieldId,
-                isBlob,
-                blobVirtualColumnType,
-                baseBlobColumnName,
-                LanceFieldPath.canonicalPath(List.of(name)),
-                name,
-                trinoType,
-                List.of(),
-                List.of());
-    }
-
     public static LanceColumnHandle nestedColumn(
             String name,
             Type trinoType,
@@ -158,6 +114,93 @@ public record LanceColumnHandle(
         }
         dereferencePath = List.copyOf(dereferencePath);
         dereferenceNames = List.copyOf(dereferenceNames);
+    }
+
+    public static Builder optional(String name)
+    {
+        return builder(name).setNullable(true);
+    }
+
+    public static Builder required(String name)
+    {
+        return builder(name).setNullable(false);
+    }
+
+    public static Builder builder(String name)
+    {
+        return new Builder().setName(name);
+    }
+
+    public static final class Builder
+    {
+        private String name;
+        private Type trinoType;
+        private boolean isNullable;
+        private int fieldId = -1;
+        private boolean isBlob;
+        private BlobUtils.BlobVirtualColumnType blobVirtualColumnType = BlobUtils.BlobVirtualColumnType.NONE;
+        private String baseBlobColumnName;
+
+        private Builder() {}
+
+        public Builder setName(String name)
+        {
+            this.name = name;
+            return this;
+        }
+
+        public Builder setTrinoType(Type trinoType)
+        {
+            this.trinoType = trinoType;
+            return this;
+        }
+
+        public Builder setNullable(boolean isNullable)
+        {
+            this.isNullable = isNullable;
+            return this;
+        }
+
+        public Builder setFieldId(int fieldId)
+        {
+            this.fieldId = fieldId;
+            return this;
+        }
+
+        public Builder setBlob(boolean isBlob)
+        {
+            this.isBlob = isBlob;
+            return this;
+        }
+
+        public Builder setBlobVirtualColumnType(BlobUtils.BlobVirtualColumnType blobVirtualColumnType)
+        {
+            this.blobVirtualColumnType = blobVirtualColumnType;
+            return this;
+        }
+
+        public Builder setBaseBlobColumnName(String baseBlobColumnName)
+        {
+            this.baseBlobColumnName = baseBlobColumnName;
+            return this;
+        }
+
+        public LanceColumnHandle build()
+        {
+            return new LanceColumnHandle(
+                    name,
+                    trinoType,
+                    isNullable,
+                    fieldId,
+                    isBlob,
+                    blobVirtualColumnType,
+                    baseBlobColumnName,
+                    null,
+                    null,
+                    null,
+                    ImmutableList.of(),
+                    ImmutableList.of());
+        }
     }
 
     public boolean isBlobVirtualColumn()

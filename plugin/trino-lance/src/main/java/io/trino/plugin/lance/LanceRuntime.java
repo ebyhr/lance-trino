@@ -436,34 +436,28 @@ public class LanceRuntime
 
         for (LanceField f : lanceSchema.fields()) {
             boolean isBlob = blobColumns.contains(f.getName());
-            result.put(f.getName(), new LanceColumnHandle(
-                    f.getName(),
-                    LanceColumnHandle.toTrinoType(f),
-                    f.isNullable(),
-                    f.getId(),
-                    isBlob));
+            result.put(f.getName(), LanceColumnHandle.builder(f.getName())
+                    .setTrinoType(LanceColumnHandle.toTrinoType(f))
+                    .setNullable(f.isNullable())
+                    .setFieldId(f.getId())
+                    .setBlob(isBlob)
+                    .build());
 
             if (isBlob) {
                 String posColumnName = BlobUtils.getBlobPositionColumnName(f.getName());
                 String sizeColumnName = BlobUtils.getBlobSizeColumnName(f.getName());
 
-                result.put(posColumnName, new LanceColumnHandle(
-                        posColumnName,
-                        BIGINT,
-                        true,
-                        -1,
-                        false,
-                        BlobUtils.BlobVirtualColumnType.POSITION,
-                        f.getName()));
+                result.put(posColumnName, LanceColumnHandle.optional(posColumnName)
+                        .setTrinoType(BIGINT)
+                        .setBlobVirtualColumnType(BlobUtils.BlobVirtualColumnType.POSITION)
+                        .setBaseBlobColumnName(f.getName())
+                        .build());
 
-                result.put(sizeColumnName, new LanceColumnHandle(
-                        sizeColumnName,
-                        BIGINT,
-                        true,
-                        -1,
-                        false,
-                        BlobUtils.BlobVirtualColumnType.SIZE,
-                        f.getName()));
+                result.put(sizeColumnName, LanceColumnHandle.optional(sizeColumnName)
+                        .setTrinoType(BIGINT)
+                        .setBlobVirtualColumnType(BlobUtils.BlobVirtualColumnType.SIZE)
+                        .setBaseBlobColumnName(f.getName())
+                        .build());
             }
         }
 
@@ -481,31 +475,25 @@ public class LanceRuntime
 
         for (LanceField f : lanceSchema.fields()) {
             boolean isBlob = blobColumns.contains(f.getName());
-            result.add(new LanceColumnHandle(
-                    f.getName(),
-                    LanceColumnHandle.toTrinoType(f),
-                    f.isNullable(),
-                    f.getId(),
-                    isBlob));
+            result.add(LanceColumnHandle.builder(f.getName())
+                    .setTrinoType(LanceColumnHandle.toTrinoType(f))
+                    .setNullable(f.isNullable())
+                    .setFieldId(f.getId())
+                    .setBlob(isBlob)
+                    .build());
 
             if (isBlob) {
-                result.add(new LanceColumnHandle(
-                        BlobUtils.getBlobPositionColumnName(f.getName()),
-                        BIGINT,
-                        true,
-                        -1,
-                        false,
-                        BlobUtils.BlobVirtualColumnType.POSITION,
-                        f.getName()));
+                result.add(LanceColumnHandle.optional(BlobUtils.getBlobPositionColumnName(f.getName()))
+                        .setTrinoType(BIGINT)
+                        .setBlobVirtualColumnType(BlobUtils.BlobVirtualColumnType.POSITION)
+                        .setBaseBlobColumnName(f.getName())
+                        .build());
 
-                result.add(new LanceColumnHandle(
-                        BlobUtils.getBlobSizeColumnName(f.getName()),
-                        BIGINT,
-                        true,
-                        -1,
-                        false,
-                        BlobUtils.BlobVirtualColumnType.SIZE,
-                        f.getName()));
+                result.add(LanceColumnHandle.optional(BlobUtils.getBlobSizeColumnName(f.getName()))
+                        .setTrinoType(BIGINT)
+                        .setBlobVirtualColumnType(BlobUtils.BlobVirtualColumnType.SIZE)
+                        .setBaseBlobColumnName(f.getName())
+                        .build());
             }
         }
 

@@ -54,10 +54,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public class TestSubstraitExpressionBuilder
 {
-    private static final LanceColumnHandle INT_COLUMN = new LanceColumnHandle("id", INTEGER, true, 0);
-    private static final LanceColumnHandle BIGINT_COLUMN = new LanceColumnHandle("big_id", BIGINT, true, 1);
-    private static final LanceColumnHandle VARCHAR_COLUMN = new LanceColumnHandle("name", VARCHAR, true, 2);
-    private static final LanceColumnHandle BOOLEAN_COLUMN = new LanceColumnHandle("active", BOOLEAN, true, 3);
+    private static final LanceColumnHandle INT_COLUMN = LanceColumnHandle.optional("id").setTrinoType(INTEGER).setFieldId(0).build();
+    private static final LanceColumnHandle BIGINT_COLUMN = LanceColumnHandle.optional("big_id").setTrinoType(BIGINT).setFieldId(1).build();
+    private static final LanceColumnHandle VARCHAR_COLUMN = LanceColumnHandle.optional("name").setTrinoType(VARCHAR).setFieldId(2).build();
+    private static final LanceColumnHandle BOOLEAN_COLUMN = LanceColumnHandle.optional("active").setTrinoType(BOOLEAN).setFieldId(3).build();
 
     private static final List<LanceColumnHandle> ALL_COLUMNS = List.of(
             INT_COLUMN, BIGINT_COLUMN, VARCHAR_COLUMN, BOOLEAN_COLUMN);
@@ -215,7 +215,7 @@ public class TestSubstraitExpressionBuilder
     public void testTimestampMicrosEquality()
     {
         // TIMESTAMP(6) - microsecond precision
-        LanceColumnHandle tsColumn = new LanceColumnHandle("created_at", TIMESTAMP_MICROS, true, 4);
+        LanceColumnHandle tsColumn = LanceColumnHandle.optional("created_at").setTrinoType(TIMESTAMP_MICROS).setFieldId(4).build();
         List<LanceColumnHandle> columns = List.of(INT_COLUMN, tsColumn);
         Map<String, Integer> ordinals = Map.of("id", 0, "created_at", 1);
 
@@ -232,7 +232,7 @@ public class TestSubstraitExpressionBuilder
     public void testTimestampMillisEquality()
     {
         // TIMESTAMP(3) - millisecond precision
-        LanceColumnHandle tsColumn = new LanceColumnHandle("created_at", TIMESTAMP_MILLIS, true, 4);
+        LanceColumnHandle tsColumn = LanceColumnHandle.optional("created_at").setTrinoType(TIMESTAMP_MILLIS).setFieldId(4).build();
         List<LanceColumnHandle> columns = List.of(INT_COLUMN, tsColumn);
         Map<String, Integer> ordinals = Map.of("id", 0, "created_at", 1);
 
@@ -248,7 +248,7 @@ public class TestSubstraitExpressionBuilder
     @Test
     public void testTimestampRange()
     {
-        LanceColumnHandle tsColumn = new LanceColumnHandle("created_at", TIMESTAMP_MICROS, true, 4);
+        LanceColumnHandle tsColumn = LanceColumnHandle.optional("created_at").setTrinoType(TIMESTAMP_MICROS).setFieldId(4).build();
         List<LanceColumnHandle> columns = List.of(INT_COLUMN, tsColumn);
         Map<String, Integer> ordinals = Map.of("id", 0, "created_at", 1);
 
@@ -417,7 +417,7 @@ public class TestSubstraitExpressionBuilder
         // A TupleDomain containing only a RowType column should produce no filter
         RowType rowType = RowType.from(List.of(
                 new RowType.Field(Optional.of("name"), VARCHAR)));
-        LanceColumnHandle structColumn = new LanceColumnHandle("metadata", rowType, true, 4);
+        LanceColumnHandle structColumn = LanceColumnHandle.optional("metadata").setTrinoType(rowType).setFieldId(4).build();
 
         // RowType columns cannot appear in TupleDomain equality directly,
         // but if they did, they should be filtered out
@@ -452,7 +452,7 @@ public class TestSubstraitExpressionBuilder
         RowType rowType = RowType.from(List.of(
                 new RowType.Field(Optional.of("name"), VARCHAR),
                 new RowType.Field(Optional.of("value"), BIGINT)));
-        LanceColumnHandle structColumn = new LanceColumnHandle("metadata", rowType, true, 4);
+        LanceColumnHandle structColumn = LanceColumnHandle.optional("metadata").setTrinoType(rowType).setFieldId(4).build();
         Map<String, ColumnHandle> assignments = Map.of("metadata", structColumn);
         Map<String, Integer> ordinals = Map.of("metadata", 0);
 
@@ -480,7 +480,7 @@ public class TestSubstraitExpressionBuilder
                 io.trino.spi.expression.StandardFunctions.EQUAL_OPERATOR_FUNCTION_NAME,
                 List.of(deref, new Constant(Slices.utf8Slice("alice"), VARCHAR)));
 
-        LanceColumnHandle structColumn = new LanceColumnHandle("meta.data", rowType, true, 4);
+        LanceColumnHandle structColumn = LanceColumnHandle.optional("meta.data").setTrinoType(rowType).setFieldId(4).build();
         Map<String, ColumnHandle> assignments = Map.of("meta.data", structColumn);
         Map<String, Integer> ordinals = Map.of("meta.data", 0, "meta\\.data", 0);
 
@@ -501,18 +501,18 @@ public class TestSubstraitExpressionBuilder
         RowType abRow = RowType.rowType(RowType.field("a", BIGINT), RowType.field("b", VARCHAR));
 
         List<LanceColumnHandle> columns = List.of(
-                new LanceColumnHandle("id", INTEGER, true, 0),
-                new LanceColumnHandle("row_col", abRow, true, 1),
-                new LanceColumnHandle("nested_row", RowType.rowType(
+                LanceColumnHandle.optional("id").setTrinoType(INTEGER).setFieldId(0).build(),
+                LanceColumnHandle.optional("row_col").setTrinoType(abRow).setFieldId(1).build(),
+                LanceColumnHandle.optional("nested_row").setTrinoType(RowType.rowType(
                         RowType.field("x", BIGINT),
-                        RowType.field("inner", tagRow)), true, 2),
-                new LanceColumnHandle("prim_array", new ArrayType(BIGINT), true, 3),
-                new LanceColumnHandle("array_of_row", new ArrayType(tagRow), true, 4),
-                new LanceColumnHandle("array_of_row2", new ArrayType(abRow), true, 5),
-                new LanceColumnHandle("array_of_array_of_row", new ArrayType(new ArrayType(abRow)), true, 6),
-                new LanceColumnHandle("row_with_array", RowType.rowType(
+                        RowType.field("inner", tagRow))).setFieldId(2).build(),
+                LanceColumnHandle.optional("prim_array").setTrinoType(new ArrayType(BIGINT)).setFieldId(3).build(),
+                LanceColumnHandle.optional("array_of_row").setTrinoType(new ArrayType(tagRow)).setFieldId(4).build(),
+                LanceColumnHandle.optional("array_of_row2").setTrinoType(new ArrayType(abRow)).setFieldId(5).build(),
+                LanceColumnHandle.optional("array_of_array_of_row").setTrinoType(new ArrayType(new ArrayType(abRow))).setFieldId(6).build(),
+                LanceColumnHandle.optional("row_with_array").setTrinoType(RowType.rowType(
                         RowType.field("x", BIGINT),
-                        RowType.field("arr", new ArrayType(abRow))), true, 7));
+                        RowType.field("arr", new ArrayType(abRow)))).setFieldId(7).build());
 
         NamedStruct schema = baseSchemaFor(columns);
         List<Type> types = schema.getStruct().getTypesList();
@@ -532,10 +532,10 @@ public class TestSubstraitExpressionBuilder
             throws Exception
     {
         List<LanceColumnHandle> columns = List.of(
-                new LanceColumnHandle("id", INTEGER, true, 0),
-                new LanceColumnHandle("col", new ArrayType(RowType.rowType(
+                LanceColumnHandle.optional("id").setTrinoType(INTEGER).setFieldId(0).build(),
+                LanceColumnHandle.optional("col").setTrinoType(new ArrayType(RowType.rowType(
                         RowType.field("a", BIGINT),
-                        RowType.field("b", VARCHAR))), true, 1));
+                        RowType.field("b", VARCHAR)))).setFieldId(1).build());
 
         NamedStruct schema = baseSchemaFor(columns);
         List<String> names = new ArrayList<>();
