@@ -20,6 +20,7 @@ import com.google.inject.Inject;
 import io.airlift.json.JsonCodec;
 import io.airlift.log.Logger;
 import io.airlift.slice.Slice;
+import io.trino.plugin.base.classloader.ClassLoaderSafeSystemTable;
 import io.trino.spi.TrinoException;
 import io.trino.spi.connector.AggregateFunction;
 import io.trino.spi.connector.AggregationApplicationResult;
@@ -45,6 +46,7 @@ import io.trino.spi.connector.RetryMode;
 import io.trino.spi.connector.RowChangeParadigm;
 import io.trino.spi.connector.SaveMode;
 import io.trino.spi.connector.SchemaTableName;
+import io.trino.spi.connector.SystemTable;
 import io.trino.spi.connector.TableNotFoundException;
 import io.trino.spi.expression.ConnectorExpression;
 import io.trino.spi.expression.FieldDereference;
@@ -118,6 +120,9 @@ import java.util.function.UnaryOperator;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.collect.ImmutableList.toImmutableList;
+import static io.trino.plugin.lance.LanceTableNames.isValidLanceTable;
+import static io.trino.plugin.lance.LanceTableNames.tableNameFrom;
+import static io.trino.plugin.lance.LanceTableNames.tableTypeFrom;
 import static io.trino.plugin.lance.RowAddress.LANCE_ROW_ADDRESS;
 import static io.trino.spi.StandardErrorCode.ALREADY_EXISTS;
 import static io.trino.spi.StandardErrorCode.GENERIC_INTERNAL_ERROR;
@@ -358,6 +363,30 @@ public class LanceMetadata
             log.debug(e, "Failed to get table metadata for %s", lanceTableHandle.getTableName());
             return null;
         }
+    }
+
+    @Override
+    public Optional<SystemTable> getSystemTable(ConnectorSession session, SchemaTableName tableName)
+    {
+        return getRawSystemTable(tableName)
+                .map(systemTable -> new ClassLoaderSafeSystemTable(systemTable, getClass().getClassLoader()));
+    }
+
+    private Optional<SystemTable> getRawSystemTable(SchemaTableName tableName)
+    {
+        String name = tableName.getTableName();
+        if (!isValidLanceTable(name)) {
+            return Optional.empty();
+        }
+        Optional<TableType> tableType = tableTypeFrom(name);
+        if (tableType.isEmpty()) {
+            return Optional.empty();
+        }
+
+        SchemaTableName baseName = new SchemaTableName(tableName.getSchemaName(), tableNameFrom(name));
+        return resolveTable(baseName).map(table -> switch (tableType.get()) {
+                    case VERSIONS -> new VersionsTable(runtime, tableName, table.tableId);
+                });
     }
 
     @Override
