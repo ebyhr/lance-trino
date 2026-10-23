@@ -292,6 +292,32 @@ SELECT * FROM lance.default.orders FOR VERSION AS OF 10
 WHERE id NOT IN (SELECT id FROM lance.default.orders);
 ```
 
+## Metadata Tables
+
+### `$versions` table
+
+The `$versions` table lists all versions of a table.
+
+```sql
+SELECT * FROM lance.default."orders$versions";
+```
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `version` | BIGINT | Version number |
+| `manifest_path` | VARCHAR | Path of the manifest file |
+| `manifest_size` | BIGINT | Size of the manifest file in bytes |
+| `e_tag` | VARCHAR | ETag of the manifest file |
+| `timestamp` | TIMESTAMP(3) WITH TIME ZONE | Version creation time |
+
+Find the latest version before a point in time:
+
+```sql
+SELECT max(version)
+FROM lance.default."orders$versions"
+WHERE timestamp <= TIMESTAMP '2024-06-01 12:00:00 UTC';
+```
+
 ## Blob Virtual Columns
 
 Tables with blob-encoded columns automatically expose virtual columns for accessing blob metadata. These columns are hidden from `DESCRIBE TABLE` but can be selected in queries.
