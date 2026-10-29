@@ -116,8 +116,12 @@
         <dependency>
             <groupId>org.lance</groupId>
             <artifactId>lance-core</artifactId>
-            <version>10.0.0</version>
+            <version>14.0.0</version>
             <exclusions>
+                <exclusion>
+                    <groupId>io.opentelemetry</groupId>
+                    <artifactId>opentelemetry-api</artifactId>
+                </exclusion>
                 <exclusion>
                     <groupId>org.junit.jupiter</groupId>
                     <artifactId>junit-jupiter</artifactId>
@@ -128,13 +132,13 @@
         <dependency>
             <groupId>org.lance</groupId>
             <artifactId>lance-namespace-apache-client</artifactId>
-            <version>0.8.6</version>
+            <version>0.12.0</version>
         </dependency>
 
         <dependency>
             <groupId>org.lance</groupId>
             <artifactId>lance-namespace-core</artifactId>
-            <version>0.8.6</version>
+            <version>0.12.0</version>
         </dependency>
 
         <dependency>
@@ -347,6 +351,7 @@
                                 <exclude>org.apache.commons:commons-lang3</exclude>
                                 <exclude>com.google.guava:failureaccess</exclude>
                                 <exclude>org.apache.logging.log4j:log4j-api</exclude>
+                                <exclude>io.opentelemetry:opentelemetry-api</exclude>
                                 <!-- arrow dependencies managed by trino but lance-core brings different versions -->
                                 <exclude>org.apache.arrow:arrow-dataset</exclude>
                                 <exclude>org.apache.arrow:arrow-memory-netty</exclude>

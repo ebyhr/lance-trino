@@ -227,6 +227,10 @@ public record LanceColumnHandle(
      */
     public static Type toTrinoType(LanceField field)
     {
+        if (BlobUtils.isBlobField(field)) {
+            return VARBINARY;
+        }
+
         ArrowType type = field.getType();
 
         // Handle FixedSizeList specially - need to get element type from children or logical type

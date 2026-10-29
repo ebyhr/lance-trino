@@ -535,6 +535,13 @@ public class LanceMetadata
             // Table may disappear between list and describe.
             return Optional.empty();
         }
+        catch (RuntimeException e) {
+            if (isDatasetNotFound(e)) {
+                // Dataset may be removed between describe and open.
+                return Optional.empty();
+            }
+            throw e;
+        }
     }
 
     @Override
@@ -899,9 +906,13 @@ public class LanceMetadata
             ResolvedTable resolvedTable = existingTable.get();
             String existingPath = resolvedTable.description().getLocation();
             Map<String, String> storageOptions = storageOptionsFrom(resolvedTable.description());
-            Schema arrowSchema = LancePageToArrowConverter.toArrowSchema(tableMetadata.getColumns(), blobColumns, vectorColumns);
             String userIdentity = session.getUser();
             try (Dataset dataset = runtime.openDatasetDirect(userIdentity, existingPath, null, storageOptions)) {
+                Schema arrowSchema = LancePageToArrowConverter.toArrowSchema(
+                        tableMetadata.getColumns(),
+                        blobColumns,
+                        vectorColumns,
+                        BlobUtils.useBlobV2(dataset.getLanceFileFormatVersion()));
                 commitOverwrite(dataset, List.of(), arrowSchema, storageOptions);
             }
             runtime.invalidate(userIdentity, existingPath);
@@ -916,9 +927,14 @@ public class LanceMetadata
         String tablePath = createResponse.getLocation();
 
         Map<String, String> storageOptions = getStorageOptionsForTable(tableId);
-        Schema arrowSchema = LancePageToArrowConverter.toArrowSchema(tableMetadata.getColumns(), blobColumns, vectorColumns);
+        String fileFormatVersion = LanceTableProperties.getFileFormatVersion(tableMetadata.getProperties());
+        Schema arrowSchema = LancePageToArrowConverter.toArrowSchema(
+                tableMetadata.getColumns(),
+                blobColumns,
+                vectorColumns,
+                BlobUtils.useBlobV2(fileFormatVersion));
 
-        createEmptyDataset(tablePath, arrowSchema, storageOptions);
+        createEmptyDataset(tablePath, arrowSchema, storageOptions, fileFormatVersion);
 
         log.debug("createTable: created empty table %s at %s", tableName, tablePath);
     }
@@ -988,9 +1004,6 @@ public class LanceMetadata
                         .build())
                 .collect(toImmutableList());
 
-        Schema arrowSchema = LancePageToArrowConverter.toArrowSchema(tableMetadata.getColumns(), blobColumns, vectorColumns);
-        String schemaJson = arrowSchema.toJson();
-
         String transactionId = null;
         if (tableExisted) {
             transactionId = UUID.randomUUID().toString();
@@ -1004,6 +1017,13 @@ public class LanceMetadata
                 fileFormatVersion = dataset.getLanceFileFormatVersion();
             }
         }
+
+        Schema arrowSchema = LancePageToArrowConverter.toArrowSchema(
+                tableMetadata.getColumns(),
+                blobColumns,
+                vectorColumns,
+                BlobUtils.useBlobV2(fileFormatVersion));
+        String schemaJson = arrowSchema.toJson();
 
         log.debug("beginCreateTable: table=%s, path=%s, replace=%s, tableExisted=%s, transactionId=%s, blobColumns=%s, fileFormatVersion=%s",
                 tableName, tablePath, replace, tableExisted, transactionId, blobColumns, fileFormatVersion);
@@ -1291,6 +1311,7 @@ public class LanceMetadata
                         .removedFragmentIds(removedFragmentIds)
                         .updatedFragments(updatedFragments)
                         .newFragments(newFragments)
+                        .updateMode(Optional.of(Update.UpdateMode.RewriteRows))
                         .build();
 
                 SourcedTransaction.Builder transactionBuilder = dataset
@@ -1466,17 +1487,20 @@ public class LanceMetadata
 
     // ===== Write Operations (formerly in LanceWriter) =====
 
-    private void createEmptyDataset(String datasetUri, Schema schema, Map<String, String> storageOptions)
+    private void createEmptyDataset(String datasetUri, Schema schema, Map<String, String> storageOptions, String fileFormatVersion)
     {
-        log.debug("Creating empty dataset at: %s", datasetUri);
         Overwrite operation = Overwrite.builder().fragments(List.of()).schema(schema).build();
         try (Transaction txn = new Transaction.Builder()
                 .operation(operation)
-                .build();
-                Dataset committed = new CommitBuilder(datasetUri, runtime.getAllocator())
-                        .writeParams(storageOptions)
-                        .execute(txn)) {
-            // auto-close txn and committed dataset
+                .build()) {
+            CommitBuilder builder = new CommitBuilder(datasetUri, runtime.getAllocator())
+                    .writeParams(storageOptions);
+            if (fileFormatVersion != null) {
+                builder.storageFormat(fileFormatVersion);
+            }
+            try (Dataset committed = builder.execute(txn)) {
+                log.debug("Created empty dataset %s at version %s", datasetUri, committed.version());
+            }
         }
     }
 
@@ -1514,7 +1538,6 @@ public class LanceMetadata
 
     private void createDatasetWithFragments(String datasetUri, List<String> serializedFragments, Schema schema, Map<String, String> storageOptions)
     {
-        log.debug("Creating dataset with %d fragments at: %s", serializedFragments.size(), datasetUri);
         List<FragmentMetadata> fragments = deserializeFragments(serializedFragments);
 
         Overwrite operation = Overwrite.builder().fragments(fragments).schema(schema).build();
@@ -1524,7 +1547,7 @@ public class LanceMetadata
                 Dataset committed = new CommitBuilder(datasetUri, runtime.getAllocator())
                         .writeParams(storageOptions)
                         .execute(txn)) {
-            // auto-close txn and committed dataset
+            log.debug("Created dataset %s with %d fragments at version %s", datasetUri, serializedFragments.size(), committed.version());
         }
     }
 
@@ -1594,6 +1617,23 @@ public class LanceMetadata
             }
             // NullPointerException in Fragment/Dataset operations is also a sign of concurrent modification
             if (current instanceof NullPointerException) {
+                return true;
+            }
+            current = current.getCause();
+        }
+        return false;
+    }
+
+    // Lance DatasetNotFound is "Dataset at path {path} was not found".
+    private static boolean isDatasetNotFound(RuntimeException e)
+    {
+        Throwable current = e;
+        while (current != null) {
+            String message = current.getMessage();
+            if (current instanceof IllegalArgumentException
+                    && message != null
+                    && message.contains("Dataset at path ")
+                    && message.contains(" was not found")) {
                 return true;
             }
             current = current.getCause();

@@ -547,7 +547,7 @@ public class LanceRuntime
         Map<String, ColumnHandle> result = new LinkedHashMap<>();
 
         for (LanceField f : lanceSchema.fields()) {
-            boolean isBlob = blobColumns.contains(f.getName());
+            boolean isBlob = blobColumns.contains(f.getName()) || BlobUtils.isBlobField(f);
             result.put(f.getName(), LanceColumnHandle.builder(f.getName())
                     .setTrinoType(LanceColumnHandle.toTrinoType(f))
                     .setNullable(f.isNullable())
@@ -586,7 +586,7 @@ public class LanceRuntime
         List<LanceColumnHandle> result = new ArrayList<>();
 
         for (LanceField f : lanceSchema.fields()) {
-            boolean isBlob = blobColumns.contains(f.getName());
+            boolean isBlob = blobColumns.contains(f.getName()) || BlobUtils.isBlobField(f);
             result.add(LanceColumnHandle.builder(f.getName())
                     .setTrinoType(LanceColumnHandle.toTrinoType(f))
                     .setNullable(f.isNullable())

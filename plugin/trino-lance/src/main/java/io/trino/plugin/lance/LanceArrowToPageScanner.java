@@ -54,7 +54,6 @@ import org.apache.arrow.vector.complex.FixedSizeListVector;
 import org.apache.arrow.vector.complex.ListVector;
 import org.apache.arrow.vector.complex.StructVector;
 import org.apache.arrow.vector.ipc.ArrowReader;
-import org.apache.arrow.vector.types.pojo.Field;
 import org.apache.arrow.vector.util.TransferPair;
 import org.lance.ipc.LanceScanner;
 
@@ -570,16 +569,11 @@ public class LanceArrowToPageScanner
                 byte[] slice = largeVarBinaryVector.get(index);
                 type.writeSlice(output, wrappedBuffer(slice));
             }
-            else if (vector instanceof StructVector structVector) {
-                // Blob columns come back as struct with position and size
-                // The actual blob data is not materialized, return empty byte array
-                Field field = structVector.getField();
-                if (BlobUtils.isBlobArrowField(field)) {
-                    type.writeSlice(output, wrappedBuffer(new byte[0]));
-                }
-                else {
-                    throw new TrinoException(GENERIC_INTERNAL_ERROR, "Unexpected StructVector for VARBINARY: " + field);
-                }
+            else if (vector instanceof StructVector) {
+                // Dataset scans default to blob descriptions. Java ScanOptions has no
+                // BlobHandling.AllBinary, so this vector has no payload. Reading the
+                // bytes belongs in Lance Core's scan API.
+                type.writeSlice(output, wrappedBuffer(new byte[0]));
             }
             else {
                 throw new TrinoException(GENERIC_INTERNAL_ERROR, "Unexpected vector type for VARBINARY: " + vector.getClass().getSimpleName());

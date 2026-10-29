@@ -44,6 +44,7 @@ import org.apache.arrow.vector.VarBinaryVector;
 import org.apache.arrow.vector.VarCharVector;
 import org.apache.arrow.vector.complex.FixedSizeListVector;
 import org.apache.arrow.vector.complex.ListVector;
+import org.apache.arrow.vector.complex.StructVector;
 import org.apache.arrow.vector.types.DateUnit;
 import org.apache.arrow.vector.types.FloatingPointPrecision;
 import org.apache.arrow.vector.types.TimeUnit;
@@ -135,7 +136,7 @@ public final class LancePageToArrowConverter
     /**
      * Convert list of Trino ColumnMetadata to Arrow Schema with blob and vector columns.
      */
-    public static Schema toArrowSchema(List<ColumnMetadata> columns, Set<String> blobColumns, Map<String, Integer> vectorColumns)
+    public static Schema toArrowSchema(List<ColumnMetadata> columns, Set<String> blobColumns, Map<String, Integer> vectorColumns, boolean blobV2)
     {
         Set<String> effectiveBlobColumns = blobColumns != null ? blobColumns : Set.of();
         Map<String, Integer> effectiveVectorColumns = vectorColumns != null ? vectorColumns : Map.of();
@@ -143,7 +144,7 @@ public final class LancePageToArrowConverter
         for (ColumnMetadata column : columns) {
             boolean isBlob = effectiveBlobColumns.contains(column.getName());
             Integer vectorDim = effectiveVectorColumns.get(column.getName());
-            fields.add(toArrowField(column.getName(), column.getType(), column.isNullable(), isBlob, vectorDim));
+            fields.add(toArrowField(column.getName(), column.getType(), column.isNullable(), isBlob, vectorDim, blobV2));
         }
         return new Schema(fields);
     }
@@ -154,11 +155,23 @@ public final class LancePageToArrowConverter
      * @param name column name
      * @param trinoType Trino type
      * @param nullable whether the column is nullable
-     * @param isBlob whether to use blob encoding (for VARBINARY columns)
+     * @param isBlob whether to use blob encoding for VARBINARY columns
      * @param vectorDim if not null, specifies the fixed size list dimension for vector columns
+     * @param blobV2 write a blob field as a blob v2 struct
      */
-    public static Field toArrowField(String name, Type trinoType, boolean nullable, boolean isBlob, Integer vectorDim)
+    public static Field toArrowField(String name, Type trinoType, boolean nullable, boolean isBlob, Integer vectorDim, boolean blobV2)
     {
+        if (isBlob && blobV2 && trinoType instanceof VarbinaryType) {
+            Field data = new Field("data", FieldType.nullable(ArrowType.LargeBinary.INSTANCE), null);
+            Field uri = new Field("uri", FieldType.nullable(ArrowType.Utf8.INSTANCE), null);
+            FieldType fieldType = new FieldType(
+                    nullable,
+                    ArrowType.Struct.INSTANCE,
+                    null,
+                    Map.of(BlobUtils.ARROW_EXTENSION_NAME, BlobUtils.BLOB_V2_EXTENSION));
+            return new Field(name, fieldType, List.of(data, uri));
+        }
+
         Map<String, String> metadata = null;
         if (isBlob) {
             metadata = Map.of(BlobUtils.LANCE_ENCODING_BLOB_KEY, BlobUtils.LANCE_ENCODING_BLOB_VALUE);
@@ -166,7 +179,7 @@ public final class LancePageToArrowConverter
 
         if (trinoType instanceof ArrayType arrayType) {
             Type elementType = arrayType.getElementType();
-            Field elementField = toArrowField("item", elementType, true, false, null);
+            Field elementField = toArrowField("item", elementType, true, false, null, false);
 
             if (vectorDim != null) {
                 // Create FixedSizeList for vector columns
@@ -188,7 +201,7 @@ public final class LancePageToArrowConverter
             List<Field> childFields = new ArrayList<>();
             for (RowType.Field field : rowType.getFields()) {
                 String fieldName = field.getName().orElse("field" + childFields.size());
-                childFields.add(toArrowField(fieldName, field.getType(), true, false, null));
+                childFields.add(toArrowField(fieldName, field.getType(), true, false, null, false));
             }
             return new Field(name, fieldType, childFields);
         }
@@ -284,7 +297,10 @@ public final class LancePageToArrowConverter
             writeVarcharBlock(block, (VarCharVector) vector, rowCount, offset);
         }
         else if (type instanceof VarbinaryType) {
-            if (vector instanceof LargeVarBinaryVector largeVarBinaryVector) {
+            if (vector instanceof StructVector structVector) {
+                writeBlobV2Block(block, structVector, rowCount, offset);
+            }
+            else if (vector instanceof LargeVarBinaryVector largeVarBinaryVector) {
                 writeLargeVarbinaryBlock(block, largeVarBinaryVector, rowCount, offset);
             }
             else {
@@ -486,6 +502,28 @@ public final class LancePageToArrowConverter
             else {
                 Slice slice = VARBINARY.getSlice(block, i);
                 vector.setSafe(offset + i, slice.getBytes());
+            }
+        }
+        vector.setValueCount(offset + rowCount);
+    }
+
+    private static void writeBlobV2Block(Block block, StructVector vector, int rowCount, int offset)
+    {
+        if (!(vector.getChild("data") instanceof LargeVarBinaryVector data)) {
+            throw new TrinoException(NOT_SUPPORTED, "Blob v2 column is missing its data field");
+        }
+        FieldVector uri = vector.getChild("uri");
+        for (int i = 0; i < rowCount; i++) {
+            int index = offset + i;
+            if (block.isNull(i)) {
+                vector.setNull(index);
+            }
+            else {
+                vector.setIndexDefined(index);
+                data.setSafe(index, VARBINARY.getSlice(block, i).getBytes());
+                if (uri != null) {
+                    uri.setNull(index);
+                }
             }
         }
         vector.setValueCount(offset + rowCount);

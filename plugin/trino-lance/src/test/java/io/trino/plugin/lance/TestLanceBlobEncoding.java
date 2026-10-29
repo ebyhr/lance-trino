@@ -189,7 +189,7 @@ public class TestLanceBlobEncoding
                             "SELECT CAST(1 AS BIGINT) as id, X'48454C4C4F' as content",
                     1);
 
-            // Virtual columns should be selectable by name
+            assertThat(computeScalar("SELECT typeof(content) FROM " + tableName)).isEqualTo("varbinary");
             // content__blob_size should be 5 (length of 'HELLO')
             assertThat(computeScalar("SELECT content__blob_size FROM " + tableName)).isEqualTo(5L);
 

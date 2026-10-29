@@ -31,6 +31,8 @@ import io.trino.spi.expression.Constant;
 import io.trino.spi.expression.Variable;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.memory.RootAllocator;
+import org.apache.arrow.vector.BigIntVector;
+import org.apache.arrow.vector.VectorSchemaRoot;
 import org.apache.arrow.vector.types.pojo.ArrowType;
 import org.apache.arrow.vector.types.pojo.Field;
 import org.apache.arrow.vector.types.pojo.Schema;
@@ -38,9 +40,14 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.lance.Dataset;
+import org.lance.Fragment;
+import org.lance.FragmentMetadata;
+import org.lance.SourcedTransaction;
 import org.lance.namespace.LanceNamespace;
 import org.lance.namespace.model.CreateNamespaceRequest;
 import org.lance.namespace.model.DeclareTableRequest;
+import org.lance.operation.Append;
+import org.lance.operation.Update;
 
 import java.net.URL;
 import java.nio.file.Files;
@@ -327,6 +334,87 @@ public class TestLanceMetadata
         }
         finally {
             runtime.close();
+        }
+    }
+
+    @Test
+    public void testStreamRelationColumnsSkipsDatasetMissingAtOpen()
+            throws Exception
+    {
+        Path root = Files.createTempDirectory("lance-relation-missing");
+        root.toFile().deleteOnExit();
+        LanceConfig config = new LanceConfig().setSingleLevelNs(true);
+        LanceRuntime runtime = new LanceRuntime(config, Map.of("lance.root", root.toUri().toString()));
+        try {
+            createDataset(root, "good_table");
+            Path missingDataset = root.resolve("missing_table" + TABLE_PATH_SUFFIX);
+            Files.createDirectories(missingDataset);
+            Files.writeString(missingDataset.resolve("not-a-dataset"), "invalid");
+
+            LanceMetadata metadata = new LanceMetadata(
+                    runtime,
+                    JsonCodec.jsonCodec(LanceCommitTaskData.class),
+                    JsonCodec.jsonCodec(LanceMergeCommitData.class));
+            SchemaTableName goodTable = new SchemaTableName("default", "good_table");
+            SchemaTableName missingTable = new SchemaTableName("default", "missing_table");
+            assertThat(metadata.listTables(SESSION, Optional.of("default"))).contains(goodTable, missingTable);
+
+            List<RelationColumnsMetadata> relationColumns = relationColumns(
+                    metadata,
+                    Optional.empty(),
+                    names -> {
+                        assertThat(names).contains(goodTable, missingTable);
+                        return names;
+                    });
+            assertThat(relationColumns).extracting(RelationColumnsMetadata::name).containsExactly(goodTable);
+        }
+        finally {
+            runtime.close();
+        }
+    }
+
+    @Test
+    public void testMergeStyleUpdateRequiresRewriteRows()
+            throws Exception
+    {
+        Path root = Files.createTempDirectory("lance-update-mode");
+        root.toFile().deleteOnExit();
+        String datasetPath = root.resolve("rows.lance").toString();
+        Schema schema = new Schema(List.of(Field.nullable("id", new ArrowType.Int(64, true))), null);
+        try (BufferAllocator allocator = new RootAllocator()) {
+            Dataset.write().allocator(allocator).uri(datasetPath).schema(schema).execute().close();
+            List<FragmentMetadata> fragments;
+            try (VectorSchemaRoot data = VectorSchemaRoot.create(schema, allocator)) {
+                data.allocateNew();
+                BigIntVector id = (BigIntVector) data.getVector("id");
+                id.setSafe(0, 1);
+                id.setSafe(1, 2);
+                data.setRowCount(2);
+                fragments = Fragment.write().datasetUri(datasetPath).allocator(allocator).data(data).execute();
+            }
+
+            try (Dataset dataset = Dataset.open().allocator(allocator).uri(datasetPath).build();
+                    SourcedTransaction append = dataset.newTransactionBuilder()
+                            .operation(Append.builder().fragments(fragments).build())
+                            .build();
+                    Dataset appended = append.commit()) {
+                FragmentMetadata updated = appended.getFragments().get(0).deleteRows(List.of(0));
+                Update missingMode = Update.builder()
+                        .updatedFragments(List.of(updated))
+                        .build();
+                assertThatThrownBy(() -> appended.newTransactionBuilder().operation(missingMode).build().commit().close())
+                        .isInstanceOf(IllegalArgumentException.class)
+                        .hasMessageContaining("update.updateMode must be specified");
+
+                Update rewriteRows = Update.builder()
+                        .updatedFragments(List.of(updated))
+                        .updateMode(Optional.of(Update.UpdateMode.RewriteRows))
+                        .build();
+                try (SourcedTransaction transaction = appended.newTransactionBuilder().operation(rewriteRows).build();
+                        Dataset committed = transaction.commit()) {
+                    assertThat(committed.countRows()).isEqualTo(1);
+                }
+            }
         }
     }
 
