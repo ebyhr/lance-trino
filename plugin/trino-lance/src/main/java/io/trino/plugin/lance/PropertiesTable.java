@@ -26,6 +26,7 @@ import io.trino.spi.connector.SystemTable;
 import io.trino.spi.predicate.TupleDomain;
 import org.lance.Dataset;
 
+import java.util.HashMap;
 import java.util.Map;
 
 import static io.trino.spi.type.VarcharType.VARCHAR;
@@ -66,11 +67,14 @@ class PropertiesTable
     public ConnectorPageSource pageSource(ConnectorTransactionHandle transactionHandle, ConnectorSession session, TupleDomain<Integer> constraint)
     {
         // Same as Spark SHOW TBLPROPERTIES: dataset config plus location
-        InMemoryRecordSet.Builder table = InMemoryRecordSet.builder(tableMetadata);
+        Map<String, String> properties;
         try (Dataset dataset = runtime.openDatasetDirect(session.getUser(), tablePath, null, storageOptions)) {
-            dataset.getConfig().forEach(table::addRow);
+            properties = new HashMap<>(dataset.getConfig());
         }
-        table.addRow("location", tablePath);
+        properties.put("location", tablePath);
+
+        InMemoryRecordSet.Builder table = InMemoryRecordSet.builder(tableMetadata);
+        properties.forEach(table::addRow);
         return new RecordPageSource(table.build());
     }
 }
