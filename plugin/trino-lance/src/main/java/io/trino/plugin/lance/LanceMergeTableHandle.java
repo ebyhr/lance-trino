@@ -13,9 +13,6 @@
  */
 package io.trino.plugin.lance;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import io.trino.spi.connector.ColumnHandle;
 import io.trino.spi.connector.ConnectorMergeTableHandle;
 
 import java.util.List;
@@ -28,16 +25,15 @@ import static java.util.Objects.requireNonNull;
  * Contains the original table handle plus merge-specific metadata.
  */
 public record LanceMergeTableHandle(
-        @JsonProperty("tableHandle") LanceTableHandle tableHandle,
-        @JsonProperty("mergeRowIdColumnHandle") ColumnHandle mergeRowIdColumnHandle,
-        @JsonProperty("readVersion") long readVersion,
-        @JsonProperty("schemaJson") String schemaJson,
-        @JsonProperty("inputColumns") List<LanceColumnHandle> inputColumns,
-        @JsonProperty("transactionId") String transactionId,
-        @JsonProperty("fileFormatVersion") String fileFormatVersion)
+        LanceTableHandle tableHandle,
+        LanceColumnHandle mergeRowIdColumnHandle,
+        long readVersion,
+        String schemaJson,
+        List<LanceColumnHandle> inputColumns,
+        String transactionId,
+        String fileFormatVersion)
         implements ConnectorMergeTableHandle
 {
-    @JsonCreator
     public LanceMergeTableHandle
     {
         requireNonNull(tableHandle, "tableHandle is null");
@@ -45,13 +41,6 @@ public record LanceMergeTableHandle(
         requireNonNull(schemaJson, "schemaJson is null");
         requireNonNull(inputColumns, "inputColumns is null");
         // fileFormatVersion can be null
-    }
-
-    @JsonProperty
-    @Override
-    public LanceTableHandle tableHandle()
-    {
-        return tableHandle;
     }
 
     @Override

@@ -13,9 +13,6 @@
  */
 package io.trino.plugin.lance;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
-
 import java.util.List;
 
 import static java.util.Objects.requireNonNull;
@@ -25,12 +22,11 @@ import static java.util.Objects.requireNonNull;
  * Contains both deletions (rows to delete) and new fragments (rows to insert).
  */
 public record LanceMergeCommitData(
-        @JsonProperty("deletions") List<FragmentDeletion> deletions,
-        @JsonProperty("newFragmentsJson") List<String> newFragmentsJson,
-        @JsonProperty("writtenBytes") long writtenBytes,
-        @JsonProperty("rowCount") long rowCount)
+        List<FragmentDeletion> deletions,
+        List<String> newFragmentsJson,
+        long writtenBytes,
+        long rowCount)
 {
-    @JsonCreator
     public LanceMergeCommitData
     {
         requireNonNull(deletions, "deletions is null");

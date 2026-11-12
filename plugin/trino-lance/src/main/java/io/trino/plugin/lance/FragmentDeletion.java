@@ -13,9 +13,6 @@
  */
 package io.trino.plugin.lance;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
-
 import java.util.List;
 
 import static java.util.Objects.requireNonNull;
@@ -25,10 +22,9 @@ import static java.util.Objects.requireNonNull;
  * Used to track which rows should be deleted during MERGE/DELETE operations.
  */
 public record FragmentDeletion(
-        @JsonProperty("fragmentId") int fragmentId,
-        @JsonProperty("rowIndexes") List<Integer> rowIndexes)
+        int fragmentId,
+        List<Integer> rowIndexes)
 {
-    @JsonCreator
     public FragmentDeletion
     {
         requireNonNull(rowIndexes, "rowIndexes is null");

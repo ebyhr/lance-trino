@@ -1257,7 +1257,7 @@ public class LanceMetadata
 
         return new LanceMergeTableHandle(
                 table.withStorageOptions(storageOptions),
-                getMergeRowIdColumnHandle(session, tableHandle),
+                (LanceColumnHandle) getMergeRowIdColumnHandle(session, tableHandle),
                 readVersion,
                 schemaJson,
                 columns,

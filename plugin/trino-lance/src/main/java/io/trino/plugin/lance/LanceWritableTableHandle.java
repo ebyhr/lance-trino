@@ -13,8 +13,6 @@
  */
 package io.trino.plugin.lance;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import io.trino.spi.connector.ConnectorInsertTableHandle;
 import io.trino.spi.connector.ConnectorOutputTableHandle;
 import io.trino.spi.connector.SchemaTableName;
@@ -28,6 +26,12 @@ import static java.util.Objects.requireNonNull;
  * Handle for write operations (CREATE TABLE, INSERT).
  * Implements both ConnectorInsertTableHandle and ConnectorOutputTableHandle
  * so it can be used for both INSERT and CREATE TABLE AS SELECT operations.
+ *
+ * @param tableId Lance table identifier for namespace operations.
+ * @param storageOptions Storage options for accessing the table (S3 credentials, endpoint, etc.).
+ * @param tableExisted True if the table existed before this operation. Used to determine whether to use overwrite mode (existing table) or create mode (new table).
+ * @param transactionId Transaction ID used to look up the cached Dataset.
+ * @param fileFormatVersion File format version to use when writing. Returns null to use existing table's version (for INSERT) or default (for new tables).
  */
 public record LanceWritableTableHandle(
         SchemaTableName tableName,
@@ -43,124 +47,13 @@ public record LanceWritableTableHandle(
         String fileFormatVersion)
         implements ConnectorInsertTableHandle, ConnectorOutputTableHandle
 {
-    @JsonCreator
-    public LanceWritableTableHandle(
-            @JsonProperty("tableName") SchemaTableName tableName,
-            @JsonProperty("tablePath") String tablePath,
-            @JsonProperty("schemaJson") String schemaJson,
-            @JsonProperty("inputColumns") List<LanceColumnHandle> inputColumns,
-            @JsonProperty("tableId") List<String> tableId,
-            @JsonProperty("storageOptions") Map<String, String> storageOptions,
-            @JsonProperty("forCreateTable") boolean forCreateTable,
-            @JsonProperty("replace") boolean replace,
-            @JsonProperty("tableExisted") boolean tableExisted,
-            @JsonProperty("transactionId") String transactionId,
-            @JsonProperty("fileFormatVersion") String fileFormatVersion)
+    public LanceWritableTableHandle
     {
-        this.tableName = requireNonNull(tableName, "tableName is null");
-        this.tablePath = requireNonNull(tablePath, "tablePath is null");
-        this.schemaJson = requireNonNull(schemaJson, "schemaJson is null");
-        this.inputColumns = requireNonNull(inputColumns, "inputColumns is null");
-        this.tableId = requireNonNull(tableId, "tableId is null");
-        this.storageOptions = requireNonNull(storageOptions, "storageOptions is null");
-        this.forCreateTable = forCreateTable;
-        this.replace = replace;
-        this.tableExisted = tableExisted;
-        this.transactionId = transactionId;
-        this.fileFormatVersion = fileFormatVersion; // nullable - if null, will use default
-    }
-
-    @JsonProperty
-    @Override
-    public SchemaTableName tableName()
-    {
-        return tableName;
-    }
-
-    @JsonProperty
-    @Override
-    public String tablePath()
-    {
-        return tablePath;
-    }
-
-    @JsonProperty
-    @Override
-    public String schemaJson()
-    {
-        return schemaJson;
-    }
-
-    @JsonProperty
-    @Override
-    public List<LanceColumnHandle> inputColumns()
-    {
-        return inputColumns;
-    }
-
-    /**
-     * Get the Lance table identifier for namespace operations.
-     */
-    @JsonProperty
-    @Override
-    public List<String> tableId()
-    {
-        return tableId;
-    }
-
-    /**
-     * Get storage options for accessing the table (S3 credentials, endpoint, etc.).
-     */
-    @JsonProperty
-    @Override
-    public Map<String, String> storageOptions()
-    {
-        return storageOptions;
-    }
-
-    @JsonProperty
-    @Override
-    public boolean forCreateTable()
-    {
-        return forCreateTable;
-    }
-
-    @JsonProperty
-    @Override
-    public boolean replace()
-    {
-        return replace;
-    }
-
-    /**
-     * Returns true if the table existed before this operation.
-     * Used to determine whether to use overwrite mode (existing table) or create mode (new table).
-     */
-    @JsonProperty
-    @Override
-    public boolean tableExisted()
-    {
-        return tableExisted;
-    }
-
-    /**
-     * Returns the transaction ID used to look up the cached Dataset.
-     */
-    @JsonProperty
-    @Override
-    public String transactionId()
-    {
-        return transactionId;
-    }
-
-    /**
-     * Returns the file format version to use when writing.
-     * Returns null to use existing table's version (for INSERT) or default (for new tables).
-     */
-    @JsonProperty
-    @Override
-    public String fileFormatVersion()
-    {
-        return fileFormatVersion;
+        requireNonNull(tableName, "tableName is null");
+        requireNonNull(tablePath, "tablePath is null");
+        requireNonNull(schemaJson, "schemaJson is null");
+        requireNonNull(inputColumns, "inputColumns is null");
+        requireNonNull(tableId, "tableId is null");
+        requireNonNull(storageOptions, "storageOptions is null");
     }
 }
